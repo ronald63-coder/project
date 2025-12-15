@@ -1,0 +1,181 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construction Permit System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .card { margin: 10px 0; }
+        .api-link { color: #0d6efd; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏗️ Construction Permit System</h1>
+    <p class="lead">Backend API is running successfully!</p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>📋 Users Management</h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage system users (Applicants, Engineers, Committee)</p>
+                    <button class="btn btn-primary" onclick="getUsers()">Get All Users</button>
+                    <button class="btn btn-success" onclick="showCreateUserForm()">Create User</button>
+                    <div id="usersResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>📄 Building Plans</h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage construction permit applications</p>
+                    <button class="btn btn-primary" onclick="getBuildingPlans()">Get All Plans</button>
+                    <div id="plansResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>🔗 API Endpoints</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group">
+                <li class="list-group-item api-link" onclick="window.open('/api/users', '_blank')">
+                    <strong>GET /api/users</strong> - List all users
+                </li>
+                <li class="list-group-item api-link" onclick="window.open('/api/building-plans', '_blank')">
+                    <strong>GET /api/building-plans</strong> - List all building plans
+                </li>
+                <li class="list-group-item api-link" onclick="window.open('/h2-console', '_blank')">
+                    <strong>GET /h2-console</strong> - Database console (username: sa, no password)
+                </li>
+                <li class="list-group-item api-link" onclick="window.open('/actuator', '_blank')">
+                    <strong>GET /actuator</strong> - Application health and metrics
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <h5>📝 Create New User</h5>
+        <form id="createUserForm" onsubmit="createUser(event)" style="display: none;">
+            <div class="row">
+                <div class="col-md-6">
+                    <input type="text" class="form-control mb-2" placeholder="Username" id="username" required>
+                </div>
+                <div class="col-md-6">
+                    <input type="email" class="form-control mb-2" placeholder="Email" id="email" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <input type="password" class="form-control mb-2" placeholder="Password" id="password" required>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control mb-2" placeholder="Full Name" id="fullName">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <select class="form-control mb-2" id="role" required>
+                        <option value="">Select Role</option>
+                        <option value="APPLICANT">Applicant</option>
+                        <option value="ENGINEER">Engineer</option>
+                        <option value="COMMITTEE">Committee Member</option>
+                        <option value="ADMIN">Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-success">Create User</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideCreateUserForm()">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    async function getUsers() {
+        try {
+            const response = await fetch('/api/users');
+            const users = await response.json();
+            document.getElementById('usersResult').innerHTML =
+                `<pre>${JSON.stringify(users, null, 2)}</pre>`;
+        } catch (error) {
+            document.getElementById('usersResult').innerHTML =
+                `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        }
+    }
+
+    async function getBuildingPlans() {
+        try {
+            const response = await fetch('/api/building-plans');
+            const plans = await response.json();
+            document.getElementById('plansResult').innerHTML =
+                `<pre>${JSON.stringify(plans, null, 2)}</pre>`;
+        } catch (error) {
+            document.getElementById('plansResult').innerHTML =
+                `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        }
+    }
+
+    function showCreateUserForm() {
+        document.getElementById('createUserForm').style.display = 'block';
+    }
+
+    function hideCreateUserForm() {
+        document.getElementById('createUserForm').style.display = 'none';
+        document.getElementById('createUserForm').reset();
+    }
+
+    async function createUser(event) {
+        event.preventDefault();
+
+        const userData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            fullName: document.getElementById('fullName').value,
+            role: document.getElementById('role').value
+        };
+
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                const newUser = await response.json();
+                alert(`User created successfully!\nID: ${newUser.id}\nUsername: ${newUser.username}`);
+                hideCreateUserForm();
+                getUsers(); // Refresh user list
+            } else {
+                throw new Error('Failed to create user');
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // Load users on page load
+    window.onload = getUsers;
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
